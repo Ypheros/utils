@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "company-utils"
+version = "0.1.0"
+description = "Internal utilities package"
+requires-python = ">=3.9"
+
+# CORE dependencies: always installed
+dependencies = [
+"pydantic>=2.0"
+]
+
+[project.optional-dependencies]
+time = ["python-dateutil"]
+all = ["company-utils[time]"]
+
+[tool.setuptools.packages.find]
+where = ["."]
