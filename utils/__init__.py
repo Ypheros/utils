@@ -1,5 +1,3 @@
-PROJECT_NAME_PATTERN = r"[A-Za-z0-9][A-Za-z0-9_-]*"
-
 # -------------------------------------------------------------------
 # spark.sql.functions as f and types as t
 # One-time warning (per Python process) if Spark is missing

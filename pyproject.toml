@@ -3,8 +3,8 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "company-utils"
-version = "0.1.0"
+name = "utils"
+version = "1.0.0"
 description = "Internal utilities package"
 requires-python = ">=3.9"
 
@@ -15,7 +15,8 @@ dependencies = [
 
 [project.optional-dependencies]
 time = ["python-dateutil"]
-all = ["company-utils[time]"]
+geospatial = ["shapely"]
+all = ["utils[time, geospatial]"]
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -125,15 +125,23 @@ _CTX: Optional[ProjectContext] = None
 def get_project_context() -> ProjectContext:
     """Public entrypoint: infer project + load vars + expose schemas."""
     global _CTX
+
     if _CTX is not None:
         return _CTX
+    
     nb_path = _get_notebook_path()
+
     if not nb_path:
         raise RuntimeError("Could not read notebook path (are you running on Databricks?).")
+    
     project_root = _infer_project_root(nb_path)
+
     if not project_root:
         raise RuntimeError(f"Could not infer project root from notebook path: {nb_path!r}")
+    
     project_name = _normalize_project_name(project_root.split("/")[-1])
     vars_model = _load_project_config(project_root)
+
     _CTX = ProjectContext(project_name=project_name, vars=vars_model)
+    
     return _CTX
