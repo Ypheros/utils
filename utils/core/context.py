@@ -30,6 +30,9 @@ _PROJECT_NAME_PATTERN = r"[A-Za-z0-9][A-Za-z0-9_-]*"
 
 class Namespace:
     """Helper class to allow dot-access to arbitrary dict keys."""
+
+    __slots__ = ()
+
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, self._wrap(v))
@@ -42,7 +45,7 @@ class Namespace:
     def __repr__(self):
         return f"Namespace({self.__dict__})"
 
-@dataclass(frozen=True)
+# @dataclass(frozen=True)
 # @dataclass()
 class ProjectContext:
     
