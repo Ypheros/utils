@@ -21,7 +21,8 @@ class Vars(BaseModel):
     """
     model_config = ConfigDict(extra="allow")
 
-    # Optional defaults for commonly used fields (customize as you learn common needs)
+    # This variables are only level above above project context
+    # so they can be accessed as ctx.some_var instead of ctx.vars.some_var for convenience
 
     timezone: str = "UTC"
     source_system: Optional[str] = None
