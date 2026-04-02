@@ -58,15 +58,15 @@ def infer_project_root(nb_path: str) -> Optional[str]:
     # DEV: /Repos/a4d_<project>/adb_<project>/notebooks/<project>/...
     m = re.match(rf"^(/Repos/[^/]+/[^/]+/(?P<project>{_PROJECT_NAME_PATTERN}))(?:/|$)", nb_path)
     if m:
-        return m.group(1)
+        return "/Workspace"+m.group(1)
     # PROD: /Workspace/<project>/...
     m = re.match(rf"^(/Workspace/(?P<project>{_PROJECT_NAME_PATTERN}))(?:/|$)", nb_path)
     if m:
-        return m.group(1)
+        return "/Workspace"+m.group(1)
     # USER_FOLDER: /Users/username/... (no project root)
-    m = re.match(r"^(/Users/[^/]+)(?:/|$)", nb_path)    
+    m = re.match(r"^(/Users/[^/]+)(?:/|$)", nb_path)
     if m:
-        return m.group(1)
+        return "/Workspace"+m.group(1)
     return None
 
 def _normalize_project_name(name: str) -> str:
