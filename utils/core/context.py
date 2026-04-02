@@ -8,43 +8,65 @@ from typing import Any, Optional
 import re
 import base64
 
+from types import SimpleNamespace
+
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 #A valid project name must start with a letter or number, and then can contain letters, numbers, underscores, or hyphens
 _PROJECT_NAME_PATTERN = r"[A-Za-z0-9][A-Za-z0-9_-]*"
 
-class Namespace:
+class Namespace(SimpleNamespace):
     """Helper class to allow dot-access to arbitrary dict keys."""
 
-    # __slots__ = ('__dict__',)
+    # # __slots__ = ('__dict__',)
 
-    def __init__(self, **kwargs):
-        object.__setattr__(self, "_locked", False)
+    # def __init__(self, **kwargs):
+    #     object.__setattr__(self, "_locked", False)
 
-        for k, v in kwargs.items():
-            try:
-                setattr(self, k, self._wrap(v))
-            except Exception:
-                setattr(self, k, v)
+    #     for k, v in kwargs.items():
+    #         try:
+    #             setattr(self, k, self._wrap(v))
+    #         except Exception:
+    #             setattr(self, k, v)
         
+    #     object.__setattr__(self, "_locked", True)
+
+    # def _wrap(self, value):
+    #     if isinstance(value, dict):
+    #         return Namespace(**value)
+    #     return value
+    
+    # def __repr__(self):
+    #     return f"Namespace({self.__dict__})"
+    
+    # def __setattr__(self, name, value) -> Any:
+    #     if getattr(self, "_locked", False):
+    #         raise AttributeError("Namespace is frozen. Cannot set attribute after initialization.")
+    #     object.__setattr__(self, name, value)
+
+    # # THIS is the key for IPython/Databricks tab-completion
+    # def __dir__(self):
+    #     return list(self.__dict__.keys())
+    def __init__(self, **kwargs):
+        wrapped = {k: self._wrap(v) for k, v in kwargs.items()}
+        super().__init__(**wrapped)
         object.__setattr__(self, "_locked", True)
 
     def _wrap(self, value):
         if isinstance(value, dict):
             return Namespace(**value)
         return value
-    
-    def __repr__(self):
-        return f"Namespace({self.__dict__})"
-    
-    def __setattr__(self, name, value) -> Any:
-        if getattr(self, "_locked", False):
-            raise AttributeError("Namespace is frozen. Cannot set attribute after initialization.")
-        object.__setattr__(self, name, value)
 
-    # THIS is the key for IPython/Databricks tab-completion
-    def __dir__(self):
-        return list(self.__dict__.keys())
+    def __setattr__(self, name, value):
+        if getattr(self, "_locked", False):
+            raise AttributeError("Namespace is frozen.")
+        super().__setattr__(name, value)
+
+    def __repr__(self):
+        items = ", ".join(
+            f"{k}={v!r}" for k, v in self.__dict__.items() if k != "_locked"
+        )
+        return f"Namespace({items})"
 
 @dataclass()
 class ProjectContext:
