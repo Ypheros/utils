@@ -13,26 +13,38 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 #A valid project name must start with a letter or number, and then can contain letters, numbers, underscores, or hyphens
 _PROJECT_NAME_PATTERN = r"[A-Za-z0-9][A-Za-z0-9_-]*"
 
-class Vars(BaseModel):
-    """Project-specific variables.
-    - Dot-access: ctx.vars.some_var
-    - Allows arbitrary additional fields so each project can add new vars without changing company-
-    - Enforces that keys are valid python identifiers by validating input keys (see _validate_vars_
-    """
-    model_config = ConfigDict(extra="allow")
+# class Vars(BaseModel):
+#     """Project-specific variables.
+#     - Dot-access: ctx.vars.some_var
+#     - Allows arbitrary additional fields so each project can add new vars without changing company-
+#     - Enforces that keys are valid python identifiers by validating input keys (see _validate_vars_
+#     """
+#     model_config = ConfigDict(extra="allow")
 
-    # This variables are only level above above project context
-    # so they can be accessed as ctx.some_var instead of ctx.vars.some_var for convenience
+#     # This variables are only level above above project context
+#     # so they can be accessed as ctx.some_var instead of ctx.vars.some_var for convenience
 
-    timezone: str = "UTC"
-    source_system: Optional[str] = None
-    pii_enabled: bool = False
+#     timezone: str = "UTC"
+#     source_system: Optional[str] = None
+#     pii_enabled: bool = False
 
-# @dataclass(frozen=True)
-@dataclass()
+class Namespace:
+    """Helper class to allow dot-access to arbitrary dict keys."""
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, self._wrap(v))
+
+    def _wrap(self, value):
+        if isinstance(value, dict):
+            return Namespace(**value)
+        return value
+    
+    def __repr__(self):
+        return f"Namespace({self.__dict__})"
+
+@dataclass(frozen=True)
+# @dataclass()
 class ProjectContext:
-    project_name: str
-    vars: Vars
     
     def __setattr__(self, name: str, value) -> None:
         """Allow dynamic attribute assignment despite frozen=True."""
@@ -101,7 +113,7 @@ def _validate_vars_keys(raw_vars: dict) -> dict:
         )
     return raw_vars
 
-def load_project_config(project_root: str) -> Vars:
+def load_project_config(project_root: str) -> Namespace:
     """Load TOML from <project_root>/project_config.toml and return Vars.
     Dynamically loads all top-level sections (vars, configs, libs, etc.) into Vars."""
 
@@ -109,27 +121,36 @@ def load_project_config(project_root: str) -> Vars:
     txt = _read_workspace_config(cfg_path)
 
     if not txt:
-        print(f"No config found at {cfg_path}, using defaults.")
         # no config file: return defaults
-        return Vars()
+        return Namespace()
     
     import tomllib
 
     cfg = tomllib.loads(txt)
 
-    # Dynamically load all top-level sections as variables
-    raw_vars = {}
-    for key, value in cfg.items():
-        raw_vars[key] = value
+    return Namespace(**cfg)
+
+    # # Dynamically load all top-level sections as variables
+    # raw_vars = {}
+    # for key, value in cfg.items():
+    #     raw_vars[key] = value
     
-    raw_vars = _validate_vars_keys(raw_vars)
-    try:
-        # Pydantic: validates known fields + allows extra fields for project-specific additions
-        return Vars.model_validate(raw_vars)
-    except ValidationError as e:
-        raise ValueError(f"Invalid project_config.toml in {cfg_path}: {e}") from e
+    # raw_vars = _validate_vars_keys(raw_vars)
+    # try:
+    #     # Pydantic: validates known fields + allows extra fields for project-specific additions
+    #     return Vars.model_validate(raw_vars)
+    # except ValidationError as e:
+    #     raise ValueError(f"Invalid project_config.toml in {cfg_path}: {e}") from e
 
 _CTX: Optional[ProjectContext] = None
+
+def build_context(project_name: str, cfg: dict) -> ProjectContext:
+    ctx = ProjectContext(project_name=project_name)
+
+    for k, v in cfg.items():
+        setattr(ctx, k, Namespace(**v) if isinstance(v, dict) else v)
+
+    return ctx
 
 def get_project_context(dbutils) -> ProjectContext:
     """Public entrypoint: infer project + load vars + expose schemas."""
@@ -149,10 +170,7 @@ def get_project_context(dbutils) -> ProjectContext:
         raise RuntimeError(f"Could not infer project root from notebook path: {nb_path!r}")
     
     project_name = _normalize_project_name(project_root.split("/")[-1])
-    vars_model = load_project_config(project_root)
-
-    _CTX = ProjectContext(project_name=project_name, vars=vars_model)
-    for k, v in vars_model.model_dump().items():
-        setattr(_CTX, k, v)
+    cfg = load_project_config(project_root)
+    _CTX = build_context(project_name, cfg.__dict__)
     
     return _CTX
