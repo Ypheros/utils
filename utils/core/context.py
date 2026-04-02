@@ -31,7 +31,7 @@ _PROJECT_NAME_PATTERN = r"[A-Za-z0-9][A-Za-z0-9_-]*"
 class Namespace:
     """Helper class to allow dot-access to arbitrary dict keys."""
 
-    __slots__ = ('__dict__',)
+    __slots__ = ()
 
     def __init__(self, **kwargs):
         object.__setattr__(self, "_locked", False)
