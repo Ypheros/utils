@@ -5,13 +5,16 @@
 _SPARK_AVAILABLE = False
 
 try:
-    import pyspark.sql.functions as f  
-    import pyspark.sql.types as t      
+    from pyspark.sql import functions as f  # type: ignore
+    from pyspark.sql import types as t      # type: ignore
     _SPARK_AVAILABLE = True
-except Exception:
+except ImportError:
     # Outside Spark environments these will be None (expected)
-    f = None
-    t = None
+    # type: ignore allows IDEs to still autocomplete
+    import sys
+    if "pyspark" not in sys.modules:
+        f = None  # type: ignore
+        t = None  # type: ignore
     _SPARK_AVAILABLE = False
 
 _SPARK_WARNING_SHOWN = False
