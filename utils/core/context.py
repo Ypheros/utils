@@ -13,7 +13,8 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 #A valid project name must start with a letter or number, and then can contain letters, numbers, underscores, or hyphens
 _PROJECT_NAME_PATTERN = r"[A-Za-z0-9][A-Za-z0-9_-]*"
 
-@dataclass(frozen=True)
+#@dataclass(frozen=True)
+@dataclass()
 class ProjectContext:
     project_name: str
     
