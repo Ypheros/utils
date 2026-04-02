@@ -77,7 +77,8 @@ def _read_workspace_config(path: str) -> Optional[str]:
     try:
         with open(path, "r") as f:
             print(f"Reading config from {path}:{f.read()}")
-            return f.read()
+            content = f.read()
+        return content
     except Exception:
         return None
 
