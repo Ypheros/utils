@@ -41,13 +41,13 @@ class ProjectContext:
     def gold(self) -> str:
         return f"{self.project_name}_gold"
     
-def _dbutils():
+def _getDbutils():
     return globals()["dbutils"] # injected by Databricks
 
 def get_notebook_path() -> Optional[str]:
     try:
-        dbutils = _dbutils()
-        return (dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get())
+        _dbutils = _getDbutils()
+        return (_dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get())
     except Exception:
         return None
 
