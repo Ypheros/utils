@@ -13,21 +13,6 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 #A valid project name must start with a letter or number, and then can contain letters, numbers, underscores, or hyphens
 _PROJECT_NAME_PATTERN = r"[A-Za-z0-9][A-Za-z0-9_-]*"
 
-# class Vars(BaseModel):
-#     """Project-specific variables.
-#     - Dot-access: ctx.vars.some_var
-#     - Allows arbitrary additional fields so each project can add new vars without changing company-
-#     - Enforces that keys are valid python identifiers by validating input keys (see _validate_vars_
-#     """
-#     model_config = ConfigDict(extra="allow")
-
-#     # This variables are only level above above project context
-#     # so they can be accessed as ctx.some_var instead of ctx.vars.some_var for convenience
-
-#     timezone: str = "UTC"
-#     source_system: Optional[str] = None
-#     pii_enabled: bool = False
-
 class Namespace:
     """Helper class to allow dot-access to arbitrary dict keys."""
 
@@ -56,12 +41,6 @@ class Namespace:
         if getattr(self, "_locked", False):
             raise AttributeError("Namespace is frozen. Cannot set attribute after initialization.")
         object.__setattr__(self, name, value)
-    
-    def __getattr__(self, name):
-        """Fallback for attribute access - this helps Databricks see dynamic attributes."""
-        if hasattr(self, '__dict__') and name in self.__dict__:
-            return self.__dict__[name]
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
 @dataclass()
 class ProjectContext:
@@ -194,3 +173,163 @@ def get_project_context(dbutils) -> ProjectContext:
     _CTX = build_context(cfg.__dict__)
     
     return _CTX
+
+def generate_config_stub(toml_path: str, output_path: str = "config.pyi") -> None:
+    """Generate a .pyi stub file from TOML configuration for perfect autocomplete.
+    
+    Args:
+        toml_path: Path to the TOML configuration file
+        output_path: Path where to write the .pyi stub file (default: config.pyi)
+    """
+    try:
+        import tomllib
+    except ImportError:
+        import tomli as tomllib
+    
+    # Load TOML configuration
+    with open(toml_path, 'rb') as f:
+        config = tomllib.load(f)
+    
+    # Generate stub content
+    lines = [
+        '"""Generated stub file for TOML configuration autocomplete."""',
+        "from typing import Any, Optional",
+        "",
+        "class Namespace:",
+        "    def __init__(self, **kwargs: Any) -> None: ...",
+    ]
+    
+    # Generate namespace classes for each TOML section
+    namespace_classes = []
+    
+    def generate_class_for_section(section_name: str, section_data: dict, indent: str = "") -> list[str]:
+        """Generate class definition for a TOML section."""
+        class_lines = [f"{indent}class {section_name.capitalize()}Namespace(Namespace):"]
+        
+        if not section_data:
+            class_lines.append(f"{indent}    pass")
+            return class_lines
+        
+        # Add attributes
+        for key, value in section_data.items():
+            if isinstance(value, dict):
+                # Nested namespace
+                class_lines.append(f"{indent}    {key}: {key.capitalize()}Namespace")
+                # Generate the nested class
+                nested_class = generate_class_for_section(key, value, indent + "    ")
+                namespace_classes.extend(nested_class + [""])
+            else:
+                # Regular attribute
+                type_hint = get_type_hint(value)
+                class_lines.append(f"{indent}    {key}: {type_hint}")
+        
+        return class_lines
+    
+    def get_type_hint(value: Any) -> str:
+        """Get appropriate type hint for a value."""
+        if value is None:
+            return "Optional[Any]"
+        elif isinstance(value, bool):
+            return "bool"
+        elif isinstance(value, int):
+            return "int"
+        elif isinstance(value, float):
+            return "float"
+        elif isinstance(value, str):
+            return "str"
+        elif isinstance(value, list):
+            return "list[Any]"
+        elif isinstance(value, dict):
+            return "dict[str, Any]"
+        else:
+            return "Any"
+    
+    # Generate ProjectContext class
+    lines.append("")
+    lines.append("class ProjectContext:")
+    lines.append("    def __init__(self) -> None: ...")
+    lines.append("    def __setattr__(self, name: str, value: Any) -> None: ...")
+    
+    # Add properties
+    lines.append("    @property")
+    lines.append("    def bronze(self) -> str: ...")
+    lines.append("    @property") 
+    lines.append("    def silver(self) -> str: ...")
+    lines.append("    @property")
+    lines.append("    def gold(self) -> str: ...")
+    
+    # Add dynamic attributes based on TOML sections
+    for section_name, section_data in config.items():
+        if isinstance(section_data, dict):
+            lines.append(f"    {section_name}: {section_name.capitalize()}Namespace")
+            # Generate the namespace class
+            class_def = generate_class_for_section(section_name, section_data)
+            namespace_classes.extend(class_def + [""])
+        else:
+            type_hint = get_type_hint(section_data)
+            lines.append(f"    {section_name}: {type_hint}")
+    
+    # Add all namespace classes
+    lines.extend([""] + namespace_classes)
+    
+    # Add factory function
+    lines.extend([
+        "def get_project_context(dbutils: Any) -> ProjectContext: ...",
+        ""
+    ])
+    
+    # Write stub file
+    with open(output_path, 'w') as f:
+        f.write('\n'.join(lines))
+    
+    print(f"✅ Generated stub file: {output_path}")
+    print(f"📝 Add this to your imports: from config import ProjectContext")
+    print(f"🚀 Now you'll have full autocomplete for all TOML configuration!")
+
+def create_stub_from_context(ctx: ProjectContext, output_path: str = "config.pyi") -> None:
+    """Generate .pyi stub from an existing ProjectContext for autocomplete."""
+    lines = [
+        '"""Generated stub file for project context autocomplete."""',
+        "from typing import Any, Optional",
+        "",
+        "class Namespace:",
+        "    def __init__(self, **kwargs: Any) -> None: ...",
+        "",
+    ]
+    
+    # Analyze the context
+    namespace_classes = []
+    
+    lines.append("class ProjectContext:")
+    lines.append("    @property")
+    lines.append("    def bronze(self) -> str: ...")
+    lines.append("    @property")
+    lines.append("    def silver(self) -> str: ...")
+    lines.append("    @property") 
+    lines.append("    def gold(self) -> str: ...")
+    
+    # Add attributes from context
+    if hasattr(ctx, '__dict__'):
+        for attr_name, attr_value in ctx.__dict__.items():
+            if isinstance(attr_value, Namespace):
+                lines.append(f"    {attr_name}: {attr_name.capitalize()}Namespace")
+                
+                # Generate class for this namespace
+                class_lines = [f"class {attr_name.capitalize()}Namespace(Namespace):"]
+                if hasattr(attr_value, '__dict__'):
+                    for key, value in attr_value.__dict__.items():
+                        if key != '_locked':
+                            type_hint = "str" if isinstance(value, str) else "Any"
+                            class_lines.append(f"    {key}: {type_hint}")
+                else:
+                    class_lines.append("    pass")
+                
+                namespace_classes.extend(class_lines + [""])
+    
+    lines.extend([""] + namespace_classes)
+    lines.append("def get_project_context(dbutils: Any) -> ProjectContext: ...")
+    
+    with open(output_path, 'w') as f:
+        f.write('\n'.join(lines))
+    
+    print(f"✅ Generated stub file from context: {output_path}")
