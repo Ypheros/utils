@@ -76,6 +76,7 @@ def _read_workspace_config(path: str) -> Optional[str]:
     """Read a text file from Databricks Workspace (Repos/Workspace)."""
     try:
         with open(path, "r") as f:
+            print(f"Reading config from {path}:{f.read()}")
             return f.read()
     except Exception:
         return None
@@ -96,13 +97,16 @@ def load_project_config(project_root: str) -> Vars:
     """Load TOML from <project_root>/project_config.toml and return Vars."""
     cfg_path = f"{project_root}/project_config.toml"
     txt = _read_workspace_config(cfg_path)
+    print(f"Config text from {cfg_path}: {txt}")
     if not txt:
         # no config file: return defaults
         return Vars()
     import tomllib
     cfg = tomllib.loads(txt)
     raw_vars = cfg.get("vars") or {}
+    print(f"Raw vars from config before _validate_vars_keys: {raw_vars}")
     raw_vars = _validate_vars_keys(raw_vars)
+    print(f"Raw vars from config after _validate_vars_keys: {raw_vars}")
     try:
         # Pydantic: validates known fields + allows extra fields for project-specific additions
         return Vars.model_validate(raw_vars)
