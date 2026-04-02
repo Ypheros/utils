@@ -1,3 +1,4 @@
+from utils.core import get_project_context, ProjectContext, Namespace
 # -------------------------------------------------------------------
 # spark.sql.functions as f and types as t
 # One-time warning (per Python process) if Spark is missing
@@ -45,3 +46,26 @@ def _inject_spark_into_builtins_once() -> None:
 
 
 _inject_spark_into_builtins_once()
+
+__all__ = [
+    "get_project_context",
+    "ProjectContext",
+    "Namespace",
+    "f",
+    "t",
+]
+
+# -------------------------------------------------------------------
+# Optional submodules — only added to __all__ if installed
+# -------------------------------------------------------------------
+try:
+    from utils import time_utils as time_utils
+    __all__.append("time_utils")
+except ImportError:
+    pass
+
+try:
+    from utils import geospatial as geospatial
+    __all__.append("geospatial")
+except ImportError:
+    pass
