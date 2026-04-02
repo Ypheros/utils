@@ -13,10 +13,25 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 #A valid project name must start with a letter or number, and then can contain letters, numbers, underscores, or hyphens
 _PROJECT_NAME_PATTERN = r"[A-Za-z0-9][A-Za-z0-9_-]*"
 
-#@dataclass(frozen=True)
+class Vars(BaseModel):
+    """Project-specific variables.
+    - Dot-access: ctx.vars.some_var
+    - Allows arbitrary additional fields so each project can add new vars without changing company-
+    - Enforces that keys are valid python identifiers by validating input keys (see _validate_vars_
+    """
+    model_config = ConfigDict(extra="allow")
+
+    # Optional defaults for commonly used fields (customize as you learn common needs)
+
+    timezone: str = "UTC"
+    source_system: Optional[str] = None
+    pii_enabled: bool = False
+
+# @dataclass(frozen=True)
 @dataclass()
 class ProjectContext:
     project_name: str
+    vars: Vars
     
     def __setattr__(self, name: str, value) -> None:
         """Allow dynamic attribute assignment despite frozen=True."""
@@ -135,8 +150,8 @@ def get_project_context(dbutils) -> ProjectContext:
     project_name = _normalize_project_name(project_root.split("/")[-1])
     vars_model = load_project_config(project_root)
 
-    _CTX = ProjectContext(project_name=project_name)
-    for k, v in vars(vars_model).items():
+    _CTX = ProjectContext(project_name=project_name, vars=vars_model)
+    for k, v in vars_model.model_dump().items():
         setattr(_CTX, k, v)
     
     return _CTX
