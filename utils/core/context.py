@@ -119,7 +119,7 @@ def get_project_context() -> ProjectContext:
         return _CTX
     
     nb_path = _get_notebook_path()
-
+    print(nb_path)
     if not nb_path:
         raise RuntimeError("Could not read notebook path (are you running on Databricks?).")
     
