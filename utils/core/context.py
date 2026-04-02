@@ -42,8 +42,7 @@ class ProjectContext:
         return f"{self.project_name}_gold"
     
 def _dbutils():
-    import builtins
-    return builtins.dbutils # injected by Databricks
+    return globals()["dbutils"] # injected by Databricks
 
 def get_notebook_path() -> Optional[str]:
     try:
