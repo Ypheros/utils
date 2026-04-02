@@ -4,7 +4,7 @@ from ast import Try
 import builtins
 from dataclasses import dataclass
 from sys import path
-from typing import Optional
+from typing import Any, Optional
 import re
 import base64
 
@@ -31,7 +31,7 @@ _PROJECT_NAME_PATTERN = r"[A-Za-z0-9][A-Za-z0-9_-]*"
 class Namespace:
     """Helper class to allow dot-access to arbitrary dict keys."""
 
-    __slots__ = ()
+    __slots__ = ('__dict__',)
 
     def __init__(self, **kwargs):
         object.__setattr__(self, "_locked", False)
@@ -52,7 +52,7 @@ class Namespace:
     def __repr__(self):
         return f"Namespace({self.__dict__})"
     
-    def __setattr__(self, name, value):
+    def __setattr__(self, name, value) -> Any:
         if getattr(self, "_locked", False):
             raise AttributeError("Namespace is frozen. Cannot set attribute after initialization.")
         object.__setattr__(self, name, value)
