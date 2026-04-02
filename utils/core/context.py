@@ -57,9 +57,21 @@ class Namespace:
             raise AttributeError("Namespace is frozen. Cannot set attribute after initialization.")
         object.__setattr__(self, name, value)
     
-    def __dir__(self):
-        """Return list of attributes for autocomplete support"""
+    # def __dir__(self):
+    #     """Return list of attributes for autocomplete support"""
+    #     return list(self.__dict__.keys())
+    
+    def _ipython_key_completions_(self):
+        """IPython-specific completion method for Databricks/Jupyter."""
         return list(self.__dict__.keys())
+    
+    def __getattr__(self, name):
+        """Enhanced getattr that provides better introspection for autocomplete."""
+        # This will be called when an attribute doesn't exist
+        # We raise AttributeError but first, let's make our attributes visible
+        if hasattr(self, '__dict__') and name in self.__dict__:
+            return self.__dict__[name]
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
 @dataclass()
 class ProjectContext:
@@ -68,15 +80,34 @@ class ProjectContext:
         """Allow dynamic attribute assignment despite frozen=True."""
         object.__setattr__(self, name, value)
     
-    def __dir__(self):
-        """Return list of attributes for autocomplete support"""
-        # Get both instance attributes and class properties
+    # def __dir__(self):
+    #     """Return list of attributes for autocomplete support"""
+    #     # Get both instance attributes and class properties
+    #     attrs = list(self.__dict__.keys())
+    #     # Add property names
+    #     for name in dir(self.__class__):
+    #         if isinstance(getattr(self.__class__, name, None), property):
+    #             attrs.append(name)
+    #     return attrs
+    
+    def _ipython_key_completions_(self):
+        """IPython-specific completion method for Databricks/Jupyter."""
         attrs = list(self.__dict__.keys())
         # Add property names
         for name in dir(self.__class__):
             if isinstance(getattr(self.__class__, name, None), property):
                 attrs.append(name)
         return attrs
+    
+    def __getattr__(self, name):
+        """Enhanced getattr for better introspection."""
+        # First check if it's in our dict
+        if hasattr(self, '__dict__') and name in self.__dict__:
+            return self.__dict__[name]  
+        # Then check if it's a property
+        if hasattr(self.__class__, name):
+            return getattr(self.__class__, name).__get__(self, self.__class__)
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
     
     @property
     def bronze(self) -> str:
