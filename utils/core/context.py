@@ -76,8 +76,8 @@ def _read_workspace_config(path: str) -> Optional[str]:
     """Read a text file from Databricks Workspace (Repos/Workspace)."""
     try:
         with open(path, "r") as f:
-            print(f"Reading config from {path}:{f.read()}")
             content = f.read()
+            print(f"Reading config from {path}:{content}")
         return content
     except Exception:
         return None
