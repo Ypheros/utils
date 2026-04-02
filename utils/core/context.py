@@ -150,7 +150,7 @@ def load_project_config(project_root: str) -> Namespace:
 
 _CTX: Optional[ProjectContext] = None
 
-def build_context( cfg: dict) -> ProjectContext:
+def build_context(cfg: dict) -> ProjectContext:
     ctx = ProjectContext()
 
     for k, v in cfg.items():
@@ -177,6 +177,6 @@ def get_project_context(dbutils) -> ProjectContext:
     
     project_name = _normalize_project_name(project_root.split("/")[-1])
     cfg = load_project_config(project_root)
-    _CTX = build_context(project_name, cfg.__dict__)
+    _CTX = build_context(cfg.__dict__)
     
     return _CTX
