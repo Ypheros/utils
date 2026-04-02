@@ -40,14 +40,10 @@ class ProjectContext:
     @property
     def gold(self) -> str:
         return f"{self.project_name}_gold"
-    
-def getDbutils():
-    return globals()["dbutils"] # injected by Databricks
 
 def get_notebook_path() -> Optional[str]:
     try:
-        _dbutils = getDbutils()
-        return (_dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get())
+        return (_DBUTILS.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get())
     except Exception:
         return None
 
@@ -115,9 +111,12 @@ def _load_project_config(project_root: str) -> Vars:
 
 _CTX: Optional[ProjectContext] = None
 
-def get_project_context() -> ProjectContext:
+def get_project_context(dbutils) -> ProjectContext:
     """Public entrypoint: infer project + load vars + expose schemas."""
+    global _DBUTILS
     global _CTX
+
+    _DBUTILS = dbutils
 
     if _CTX is not None:
         return _CTX
