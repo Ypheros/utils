@@ -124,9 +124,6 @@ def get_project_context(dbutils) -> ProjectContext:
     global _CTX
 
     _DBUTILS = dbutils
-
-    if _CTX is not None:
-        return _CTX
     
     nb_path = get_notebook_path()
     print(nb_path)
