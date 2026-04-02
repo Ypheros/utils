@@ -150,8 +150,8 @@ def load_project_config(project_root: str) -> Namespace:
 
 _CTX: Optional[ProjectContext] = None
 
-def build_context(project_name: str, cfg: dict) -> ProjectContext:
-    ctx = ProjectContext(project_name=project_name)
+def build_context( cfg: dict) -> ProjectContext:
+    ctx = ProjectContext()
 
     for k, v in cfg.items():
         setattr(ctx, k, Namespace(**v) if isinstance(v, dict) else v)
