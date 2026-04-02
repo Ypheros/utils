@@ -56,14 +56,27 @@ class Namespace:
         if getattr(self, "_locked", False):
             raise AttributeError("Namespace is frozen. Cannot set attribute after initialization.")
         object.__setattr__(self, name, value)
+    
+    def __dir__(self):
+        """Return list of attributes for autocomplete support"""
+        return list(self.__dict__.keys())
 
-# @dataclass(frozen=True)
-# @dataclass()
+@dataclass()
 class ProjectContext:
     
     def __setattr__(self, name: str, value) -> None:
         """Allow dynamic attribute assignment despite frozen=True."""
         object.__setattr__(self, name, value)
+    
+    def __dir__(self):
+        """Return list of attributes for autocomplete support"""
+        # Get both instance attributes and class properties
+        attrs = list(self.__dict__.keys())
+        # Add property names
+        for name in dir(self.__class__):
+            if isinstance(getattr(self.__class__, name, None), property):
+                attrs.append(name)
+        return attrs
     
     @property
     def bronze(self) -> str:
