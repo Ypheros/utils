@@ -35,7 +35,10 @@ class Namespace:
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
-            setattr(self, k, self._wrap(v))
+            try:
+                setattr(self, k, self._wrap(v))
+            except Exception:
+                setattr(self, k, v)
 
     def _wrap(self, value):
         if isinstance(value, dict):
