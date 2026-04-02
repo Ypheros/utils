@@ -92,7 +92,7 @@ def _validate_vars_keys(raw_vars: dict) -> dict:
         )
     return raw_vars
 
-def _load_project_config(project_root: str) -> Vars:
+def load_project_config(project_root: str) -> Vars:
     """Load TOML from <project_root>/project_config.toml and return Vars."""
     cfg_path = f"{project_root}/project_config.toml"
     txt = _read_workspace_config(cfg_path)
@@ -132,7 +132,7 @@ def get_project_context(dbutils) -> ProjectContext:
         raise RuntimeError(f"Could not infer project root from notebook path: {nb_path!r}")
     
     project_name = _normalize_project_name(project_root.split("/")[-1])
-    vars_model = _load_project_config(project_root)
+    vars_model = load_project_config(project_root)
 
     _CTX = ProjectContext(project_name=project_name, vars=vars_model)
     
