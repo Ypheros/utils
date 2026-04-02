@@ -41,7 +41,7 @@ class ProjectContext:
     def gold(self) -> str:
         return f"{self.project_name}_gold"
 
-def _get_notebook_path() -> Optional[str]:
+def get_notebook_path() -> Optional[str]:
     try:
         return (dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get())
     except Exception:
@@ -118,7 +118,7 @@ def get_project_context() -> ProjectContext:
     if _CTX is not None:
         return _CTX
     
-    nb_path = _get_notebook_path()
+    nb_path = get_notebook_path()
     print(nb_path)
     if not nb_path:
         raise RuntimeError("Could not read notebook path (are you running on Databricks?).")
