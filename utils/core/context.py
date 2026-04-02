@@ -98,8 +98,10 @@ def load_project_config(project_root: str) -> Vars:
     """Load TOML from <project_root>/project_config.toml and return Vars."""
     cfg_path = f"{project_root}/project_config.toml"
     txt = _read_workspace_config(cfg_path)
+    print(f"Tentar aceder ao conteudo retornado da fun: {_read_workspace_config(cfg_path)}")
     print(f"Config text from {cfg_path}: {txt}")
     if not txt:
+        print(f"No config found at {cfg_path}, using defaults.")
         # no config file: return defaults
         return Vars()
     import tomllib
