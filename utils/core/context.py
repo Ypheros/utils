@@ -13,24 +13,14 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 #A valid project name must start with a letter or number, and then can contain letters, numbers, underscores, or hyphens
 _PROJECT_NAME_PATTERN = r"[A-Za-z0-9][A-Za-z0-9_-]*"
 
-class Vars(BaseModel):
-    """Project-specific variables.
-    - Dot-access: ctx.vars.some_var
-    - Allows arbitrary additional fields so each project can add new vars without changing company-
-    - Enforces that keys are valid python identifiers by validating input keys (see _validate_vars_
-    """
-    model_config = ConfigDict(extra="allow")
-
-    # Optional defaults for commonly used fields (customize as you learn common needs)
-
-    timezone: str = "UTC"
-    source_system: Optional[str] = None
-    pii_enabled: bool = False
-
 @dataclass(frozen=True)
 class ProjectContext:
     project_name: str
-    vars: Vars
+    
+    def __setattr__(self, name: str, value) -> None:
+        """Allow dynamic attribute assignment despite frozen=True."""
+        object.__setattr__(self, name, value)
+    
     @property
     def bronze(self) -> str:
         return f"{self.project_name}_bronze"
@@ -95,26 +85,32 @@ def _validate_vars_keys(raw_vars: dict) -> dict:
     return raw_vars
 
 def load_project_config(project_root: str) -> Vars:
-    """Load TOML from <project_root>/project_config.toml and return Vars."""
+    """Load TOML from <project_root>/project_config.toml and return Vars.
+    Dynamically loads all top-level sections (vars, configs, libs, etc.) into Vars."""
+
     cfg_path = f"{project_root}/project_config.toml"
     txt = _read_workspace_config(cfg_path)
-    print(f"Tentar aceder ao conteudo retornado da fun: {_read_workspace_config(cfg_path)}")
-    print(f"Config text from {cfg_path}: {txt}")
+
     if not txt:
         print(f"No config found at {cfg_path}, using defaults.")
         # no config file: return defaults
         return Vars()
+    
     import tomllib
+
     cfg = tomllib.loads(txt)
-    raw_vars = cfg.get("vars") or {}
-    print(f"Raw vars from config before _validate_vars_keys: {raw_vars}")
+
+    # Dynamically load all top-level sections as variables
+    raw_vars = {}
+    for key, value in cfg.items():
+        raw_vars[key] = value
+    
     raw_vars = _validate_vars_keys(raw_vars)
-    print(f"Raw vars from config after _validate_vars_keys: {raw_vars}")
     try:
         # Pydantic: validates known fields + allows extra fields for project-specific additions
         return Vars.model_validate(raw_vars)
     except ValidationError as e:
-        raise ValueError(f"Invalid project_config.toml vars section in {cfg_path}: {e}") from e
+        raise ValueError(f"Invalid project_config.toml in {cfg_path}: {e}") from e
 
 _CTX: Optional[ProjectContext] = None
 
@@ -138,6 +134,8 @@ def get_project_context(dbutils) -> ProjectContext:
     project_name = _normalize_project_name(project_root.split("/")[-1])
     vars_model = load_project_config(project_root)
 
-    _CTX = ProjectContext(project_name=project_name, vars=vars_model)
+    _CTX = ProjectContext(project_name=project_name)
+    for k, v in vars(vars_model).items():
+        setattr(_CTX, k, v)
     
     return _CTX
