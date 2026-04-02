@@ -40,9 +40,14 @@ class ProjectContext:
     @property
     def gold(self) -> str:
         return f"{self.project_name}_gold"
+    
+def _dbutils():
+    import builtins
+    return builtins.dbutils # injected by Databricks
 
 def get_notebook_path() -> Optional[str]:
     try:
+        dbutils = _dbutils()
         return (dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get())
     except Exception:
         return None
