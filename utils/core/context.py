@@ -34,11 +34,15 @@ class Namespace:
     __slots__ = ('__dict__',)
 
     def __init__(self, **kwargs):
+        object.__setattr__(self, "_locked", False)
+
         for k, v in kwargs.items():
             try:
                 setattr(self, k, self._wrap(v))
             except Exception:
                 setattr(self, k, v)
+        
+        object.__setattr__(self, "_locked", True)
 
     def _wrap(self, value):
         if isinstance(value, dict):
@@ -47,6 +51,11 @@ class Namespace:
     
     def __repr__(self):
         return f"Namespace({self.__dict__})"
+    
+    def __setattr__(self, name, value):
+        if getattr(self, "_locked", False):
+            raise AttributeError("Namespace is frozen. Cannot set attribute after initialization.")
+        object.__setattr__(self, name, value)
 
 # @dataclass(frozen=True)
 # @dataclass()
