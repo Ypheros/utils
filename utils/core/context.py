@@ -96,9 +96,6 @@ def infer_project_root(nb_path: str) -> Optional[str]:
     if m:
         return "/Workspace"+m.group(1)
     return None
-
-def _normalize_project_name(name: str) -> str:
-    return name.strip().lower().replace("-", "_")
     
 def _read_workspace_config(path: str) -> Optional[str]:
     """Read a text file from Databricks Workspace (Repos/Workspace)."""
@@ -109,18 +106,6 @@ def _read_workspace_config(path: str) -> Optional[str]:
         return content
     except Exception:
         return None
-
-def _validate_vars_keys(raw_vars: dict) -> dict:
-    """Ensure keys are valid python identifiers for dot-access."""
-    if not isinstance(raw_vars, dict):
-        return {}
-    bad = [k for k in raw_vars.keys() if not (isinstance(k, str) and k.isidentifier())]
-    if bad:
-        raise ValueError(
-            "Invalid keys in [vars]. Keys must be valid python identifiers for dot-access. "
-            f"Bad keys: {bad}"
-        )
-    return raw_vars
 
 def load_project_config(project_root: str) -> Namespace:
     """Load TOML from <project_root>/project_config.toml and return Vars.
@@ -138,18 +123,6 @@ def load_project_config(project_root: str) -> Namespace:
     cfg = tomllib.loads(txt)
 
     return Namespace(**cfg)
-
-    # # Dynamically load all top-level sections as variables
-    # raw_vars = {}
-    # for key, value in cfg.items():
-    #     raw_vars[key] = value
-    
-    # raw_vars = _validate_vars_keys(raw_vars)
-    # try:
-    #     # Pydantic: validates known fields + allows extra fields for project-specific additions
-    #     return Vars.model_validate(raw_vars)
-    # except ValidationError as e:
-    #     raise ValueError(f"Invalid project_config.toml in {cfg_path}: {e}") from e
 
 _CTX: Optional[ProjectContext] = None
 
@@ -177,18 +150,6 @@ def get_project_context(dbutils) -> ProjectContext:
         raise RuntimeError(f"Could not infer project root from notebook path: {nb_path!r}")
     
     cfg = load_project_config(project_root)
-
-    ctx = ProjectContext()
-
-    for k, v in cfg.__dict__.items():
-        if k == "_locked":
-            continue
-        setattr(ctx, k, Namespace(**v) if isinstance(v, dict) else v)
-
-    _CTX = ctx
-    return ctx
+    _CTX = build_context(cfg.__dict__)
     
-    # cfg = load_project_config(project_root)
-    # _CTX = build_context(cfg.__dict__)
-    
-    # return _CTX
+    return _CTX
